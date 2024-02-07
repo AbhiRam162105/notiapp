@@ -1,29 +1,19 @@
 /* eslint-disable */
 import { Editor } from "@tiptap/core";
 import { EditorContent, useEditor } from "@tiptap/react";
-import { debounce } from 'lodash';
-import { useCallback, useState } from "react";
+import { debounce } from "lodash";
+import { useCallback, useEffect } from "react";
 import "tippy.js/animations/shift-toward-subtle.css";
-// import applyDevTools from "prosemirror-dev-tools";
-
 import { getExtensions } from "./extensions";
 import { CustomBubbleMenu, LinkBubbleMenu } from "./menus";
 import { content } from "./mocks";
-import { notitapEditorClass } from './proseClassString'
+import { notitapEditorClass } from "./proseClassString";
+import { updateTextContent } from "@/data/data";
 
 import "./styles/tiptap.scss";
 
 export const Tiptap = () => {
-  const logContent = useCallback(
-    (e: Editor) => console.log(e.getJSON()),
-    []
-  );
-
-  const [isAddingNewLink, setIsAddingNewLink] = useState(false);
-
-  const openLinkModal = () => setIsAddingNewLink(true);
-
-  const closeLinkModal = () => setIsAddingNewLink(false);
+  // const logContent = useCallback((e: Editor) => console.log(e.getJSON()), []);
 
   const addImage = () =>
     editor?.commands.setMedia({
@@ -49,7 +39,11 @@ export const Tiptap = () => {
     });
 
   const editor = useEditor({
-    extensions: getExtensions({ openLinkModal }),
+    extensions: getExtensions({
+      openLinkModal: () => {
+        console.log("Hello");
+      },
+    }),
     content,
     editorProps: {
       attributes: {
@@ -58,13 +52,31 @@ export const Tiptap = () => {
         suppressContentEditableWarning: "true",
       },
     },
-    onUpdate: debounce(({ editor: e }) => {
-      logContent(e);
-    }, 500),
+    onUpdate: () => {
+      console.log("updated");
+    },
   });
 
-  const addTable = () => editor?.commands.insertTable({ rows: 3, cols: 3, withHeaderRow: true })
+  useEffect(() => {
+    if (editor?.getJSON()) {
+      const jsonContent = editor.getJSON();
+      const tt = async () => {
+        try {
+          const response = await updateTextContent(jsonContent);
+          console.log(response);
+        } catch (error) {
+          console.log("error in updating Editor text content");
+          console.log(error);
+          throw error;
+        }
+      };
 
+      tt();
+    }
+  }, [editor?.getJSON()]);
+
+  const addTable = () =>
+    editor?.commands.insertTable({ rows: 3, cols: 3, withHeaderRow: true });
 
   return (
     editor && (
